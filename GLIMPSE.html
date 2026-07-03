@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>A Photography Gallery</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Oswald:wght@500;600;700&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#15130f;
+    --charcoal:#221f1a;
+    --charcoal-2:#2c2822;
+    --paper:#f2ecdd;
+    --safelight:#e2954a;
+    --steel:#a59c8e;
+    --steel-dim:#5b564c;
+    --ease:cubic-bezier(.22,.61,.36,1);
+  }
+
+  *{box-sizing:border-box;}
+  html,body{margin:0;}
+  body{
+    background:var(--ink);
+    color:var(--paper);
+    font-family:'Work Sans', sans-serif;
+    min-height:100vh;
+    position:relative;
+    overflow-x:hidden;
+  }
+  a,button{font-family:inherit;}
+  img{max-width:100%;display:block;}
+  :focus-visible{outline:2px solid var(--safelight); outline-offset:3px;}
+
+  body::before{
+    content:"";
+    position:fixed; inset:0; z-index:0; pointer-events:none;
+    background:radial-gradient(ellipse at center, transparent 45%, rgba(0,0,0,.4) 100%);
+  }
+  body::after{
+    content:"";
+    position:fixed; inset:0; z-index:1; pointer-events:none;
+    opacity:.04; mix-blend-mode:overlay;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  .page{position:relative; z-index:2;}
+
+  .film-edge{
+    height:14px;
+    background:var(--steel-dim);
+    background-image:radial-gradient(circle, var(--ink) 0 4px, transparent 4.6px);
+    background-size:26px 14px;
+    background-position:13px center;
+    background-repeat:repeat-x;
+  }
+
+  .masthead{padding:52px 5vw 20px;}
+  .eyebrow{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:.78rem; letter-spacing:.08em;
+    color:var(--steel); text-transform:uppercase; margin:0;
+  }
+  .wordmark{
+    font-family:'Oswald', sans-serif;
+    font-weight:700; text-transform:uppercase; letter-spacing:.05em;
+    font-size:clamp(2.1rem, 5vw, 3.6rem);
+    margin:10px 0 10px; color:var(--paper);
+  }
+  .tagline{font-size:1rem; line-height:1.5; color:var(--steel); max-width:46ch; margin:0;}
+
+  .filter-bar{display:flex; gap:10px; flex-wrap:wrap; padding:0 5vw 26px;}
+  .filter-btn{
+    all:unset; cursor:pointer;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:.74rem; letter-spacing:.06em; text-transform:uppercase;
+    padding:10px 18px;
+    background:var(--charcoal);
+    border:1px solid var(--charcoal-2);
+    color:var(--steel);
+    transition:background .25s var(--ease), color .25s var(--ease), border-color .25s var(--ease);
+  }
+  .filter-btn:hover{color:var(--paper); border-color:var(--steel);}
+  .filter-btn.active{background:var(--safelight); color:var(--ink); border-color:var(--safelight); font-weight:600;}
+
+  .gallery{
+    display:grid;
+    grid-template-columns:repeat(auto-fill, minmax(250px, 1fr));
+    gap:22px;
+    padding:30px 5vw 10px;
+  }
+
+  .frame{
+    all:unset;
+    position:relative; display:block; cursor:pointer;
+    aspect-ratio:3/2; overflow:hidden;
+    background:var(--charcoal);
+    border:1px solid var(--charcoal-2);
+    transition:transform .4s var(--ease), box-shadow .4s var(--ease), border-color .3s var(--ease), opacity .4s var(--ease);
+  }
+  .frame.enter{animation:frameIn .55s var(--ease) both;}
+  .frame.is-hidden{opacity:0; transform:scale(.85); pointer-events:none;}
+  @keyframes frameIn{from{opacity:0; transform:translateY(16px);} to{opacity:1; transform:none;}}
+
+  .frame img{
+    width:100%; height:100%; object-fit:cover;
+    filter:saturate(.9) brightness(.97);
+    transition:transform .6s var(--ease), filter .6s var(--ease);
+  }
+  .frame:hover{transform:translateY(-5px); border-color:var(--safelight); box-shadow:0 18px 30px -14px rgba(0,0,0,.65);}
+  .frame:hover img, .frame:focus-visible img{transform:scale(1.07); filter:saturate(1.05) brightness(1.02);}
+
+  .frame-no{
+    position:absolute; top:10px; left:10px;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:.68rem; letter-spacing:.05em;
+    color:var(--safelight);
+    background:rgba(21,19,15,.78);
+    border:1px solid rgba(226,148,74,.4);
+    padding:3px 7px; z-index:2;
+  }
+
+  .frame-caption{
+    position:absolute; left:0; right:0; bottom:0;
+    padding:16px 14px 13px;
+    background:linear-gradient(to top, rgba(15,13,10,.94), transparent);
+    transform:translateY(100%);
+    transition:transform .35s var(--ease);
+  }
+  .frame:hover .frame-caption, .frame:focus-visible .frame-caption{transform:translateY(0);}
+  .frame-caption .cat{display:block; font-family:'IBM Plex Mono', monospace; font-size:.64rem; letter-spacing:.09em; color:var(--safelight); text-transform:uppercase; margin-bottom:3px;}
+  .frame-caption .ttl{font-size:.92rem; font-weight:500; color:var(--paper);}
+
+  footer{padding:30px 5vw 50px; text-align:center; font-size:.78rem; color:var(--steel-dim); font-family:'IBM Plex Mono', monospace; letter-spacing:.03em;}
+
+  .lightbox{
+    position:fixed; inset:0; z-index:200;
+    display:flex; align-items:center; justify-content:center;
+    background:rgba(9,8,6,.95);
+    opacity:0; visibility:hidden; pointer-events:none;
+    transition:opacity .3s var(--ease);
+  }
+  .lightbox.is-open{opacity:1; visibility:visible; pointer-events:auto;}
+
+  .lb-stage{position:relative; max-width:min(90vw, 1100px); display:flex; flex-direction:column; align-items:center; gap:18px;}
+  #lbImage{
+    max-width:100%; max-height:72vh; object-fit:contain;
+    background:var(--charcoal);
+    box-shadow:0 30px 70px -25px rgba(0,0,0,.75);
+    transition:opacity .18s var(--ease), transform .18s var(--ease);
+  }
+  #lbImage.switching{opacity:0; transform:scale(.97);}
+
+  .lb-caption{text-align:center;}
+  .lb-frame{display:block; font-family:'IBM Plex Mono', monospace; font-size:.8rem; letter-spacing:.06em; color:var(--safelight); margin-bottom:6px;}
+  .lb-title-row{font-size:1.02rem; color:var(--paper);}
+  .lb-title-row .sep{color:var(--steel); margin:0 8px;}
+  .lb-title-row .cat{color:var(--steel); text-transform:uppercase; font-size:.85rem; letter-spacing:.04em;}
+
+  .lb-close, .lb-prev, .lb-next{
+    all:unset; cursor:pointer;
+    position:fixed; display:flex; align-items:center; justify-content:center;
+    width:48px; height:48px; border-radius:50%;
+    background:rgba(34,31,26,.75);
+    border:1px solid var(--charcoal-2);
+    color:var(--paper); font-size:1.2rem;
+    transition:border-color .25s var(--ease), color .25s var(--ease), background .25s var(--ease);
+  }
+  .lb-close:hover, .lb-prev:hover, .lb-next:hover{border-color:var(--safelight); color:var(--safelight);}
+  .lb-close{top:24px; right:24px;}
+  .lb-prev{left:24px; top:50%; transform:translateY(-50%);}
+  .lb-next{right:24px; top:50%; transform:translateY(-50%);}
+
+  @media (max-width:680px){
+    .masthead{padding:36px 6vw 16px;}
+    .gallery{padding:24px 6vw 6px; gap:16px;}
+    .filter-bar{padding:0 6vw 20px;}
+    .lb-prev, .lb-next{width:40px; height:40px; top:auto; bottom:20px; transform:none; font-size:1rem;}
+    .lb-prev{left:16px;}
+    .lb-next{right:16px;}
+    .lb-close{width:38px; height:38px; top:14px; right:14px; font-size:1.05rem;}
+    #lbImage{max-height:58vh;}
+  }
+
+  @media (prefers-reduced-motion:reduce){
+    *{animation-duration:.001ms !important; animation-delay:0s !important; transition-duration:.001ms !important;}
+  }
+</style>
+</head>
+<body>
+
+  <div class="page">
+    <div class="film-edge" aria-hidden="true"></div>
+
+    <header class="masthead">
+      <p class="eyebrow" id="rollMeta">18 frames developed</p>
+      <h1 class="wordmark">GLIMPSE</h1>
+      <p class="tagline">A small archive of frames worth holding up to the light. Pick a roll below, or browse all of them.</p>
+    </header>
+
+    <nav class="filter-bar" id="filterBar" aria-label="Filter photographs by category"></nav>
+
+    <div class="film-edge" aria-hidden="true"></div>
+
+    <main class="gallery" id="gallery" aria-label="Photo gallery"></main>
+
+    <div class="film-edge" aria-hidden="true"></div>
+
+    <footer></footer>
+  </div>
+
+  <div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="Photo viewer">
+    <button class="lb-close" id="lbClose" aria-label="Close viewer">&#10005;</button>
+    <button class="lb-prev" id="lbPrev" aria-label="Previous photo">&#10094;</button>
+    <div class="lb-stage">
+      <img id="lbImage" src="" alt="" />
+      <div class="lb-caption">
+        <span class="lb-frame" id="lbFrame"></span>
+        <span class="lb-title-row"><span class="ttl" id="lbTitle"></span><span class="sep">·</span><span class="cat" id="lbCat"></span></span>
+      </div>
+    </div>
+    <button class="lb-next" id="lbNext" aria-label="Next photo">&#10095;</button>
+  </div>
+
+<script>
+(function(){
+  const categories = [
+    {key:'all', label:'All Frames'},
+    {key:'nature', label:'Nature'},
+    {key:'urban', label:'Urban'},
+    {key:'wildlife', label:'Wildlife'},
+    {key:'travel', label:'Travel'},
+    {key:'food', label:'Food'}
+  ];
+
+  const photos = [
+    {category:'nature', title:'Trail Through the Pines', src:'https://images.unsplash.com/photo-1506905925346-21bda4d32df4'},
+    {category:'nature', title:'Light Through the Canopy', src:'https://images.unsplash.com/photo-1441974231531-c6227db76b6e'},
+    {category:'nature', title:'Still Water, Steep Ridge', src:'https://images.unsplash.com/photo-1470770841072-f978cf4d019e'},
+    {category:'nature', title:'Layers of the Range', src:'https://images.unsplash.com/photo-1426604966848-d7adac402bff'},
+    {category:'urban', title:'Spiral Stairwell', src:'https://images.unsplash.com/photo-1486325212027-8081e485255e'},
+    {category:'urban', title:'Skyline After Dark', src:'https://images.unsplash.com/photo-1480714378408-67cf0d13bc1f'},
+    {category:'urban', title:'Glass and Steel', src:'https://images.unsplash.com/photo-1449034446853-66c86144b0ad'},
+    {category:'urban', title:'Grid of Windows', src:'https://images.unsplash.com/photo-1496564203457-11bb12075d90'},
+    {category:'wildlife', title:'Resting in the Shade', src:'https://images.unsplash.com/photo-1474511320723-9a56873867b5'},
+    {category:'wildlife', title:'Elephant at Dusk', src:'https://images.unsplash.com/photo-1456926631375-92c8ce872def'},
+    {category:'wildlife', title:'Necks Above the Grass', src:'https://images.unsplash.com/photo-1474314385916-fda5e6c5fbfa'},
+    {category:'wildlife', title:'Stripes in Motion', src:'https://images.unsplash.com/photo-1478098711619-5ab0b478d6e6'},
+    {category:'travel', title:'Switchbacks to the Summit', src:'https://images.unsplash.com/photo-1488646953014-85cb44e25828'},
+    {category:'travel', title:'Road Through the Valley', src:'https://images.unsplash.com/photo-1469474968028-56623f02e42e'},
+    {category:'travel', title:'Open Country', src:'https://images.unsplash.com/photo-1502790671504-542ad42d5189'},
+    {category:'food', title:'Spread for the Table', src:'https://images.unsplash.com/photo-1504674900247-0877df9cc836'},
+    {category:'food', title:'Plated and Ready', src:'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085'},
+    {category:'food', title:'Market Morning', src:'https://images.unsplash.com/photo-1484723091739-30a097e8f929'}
+  ];
+
+  const IMG_PARAMS = '?w=720&h=480&fit=crop&q=70&auto=format';
+
+  const galleryEl = document.getElementById('gallery');
+  const filterBarEl = document.getElementById('filterBar');
+  const rollMetaEl = document.getElementById('rollMeta');
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  let activeCategory = 'all';
+
+  function categoryLabel(key){
+    const c = categories.find(c => c.key === key);
+    return c ? c.label : key;
+  }
+
+  function buildFrames(){
+    photos.forEach((p, i) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'frame';
+      btn.dataset.category = p.category;
+      btn.dataset.index = i;
+      btn.setAttribute('aria-label', 'Open photo ' + (i+1) + ': ' + p.title + ', ' + categoryLabel(p.category));
+
+      const no = document.createElement('span');
+      no.className = 'frame-no';
+      no.textContent = String(i+1).padStart(2,'0');
+
+      const img = document.createElement('img');
+      img.src = p.src + IMG_PARAMS;
+      img.alt = p.title;
+      img.loading = 'lazy';
+      img.onerror = function(){ this.onerror = null; this.src = 'https://picsum.photos/seed/frame' + i + '/720/480'; };
+
+      const cap = document.createElement('span');
+      cap.className = 'frame-caption';
+      const catSpan = document.createElement('span');
+      catSpan.className = 'cat';
+      catSpan.textContent = categoryLabel(p.category);
+      const ttlSpan = document.createElement('span');
+      ttlSpan.className = 'ttl';
+      ttlSpan.textContent = p.title;
+      cap.appendChild(catSpan);
+      cap.appendChild(ttlSpan);
+
+      btn.appendChild(no);
+      btn.appendChild(img);
+      btn.appendChild(cap);
+
+      btn.addEventListener('click', () => openLightbox(i));
+
+      if(!reduceMotion){
+        btn.classList.add('enter');
+        btn.style.animationDelay = (i*45) + 'ms';
+        btn.addEventListener('animationend', () => btn.classList.remove('enter'), {once:true});
+      }
+
+      galleryEl.appendChild(btn);
+    });
+  }
+
+  function buildFilters(){
+    categories.forEach(c => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'filter-btn' + (c.key === 'all' ? ' active' : '');
+      btn.textContent = c.label;
+      btn.dataset.category = c.key;
+      btn.addEventListener('click', () => setFilter(c.key, btn));
+      filterBarEl.appendChild(btn);
+    });
+  }
+
+  function setFilter(key, btnEl){
+    activeCategory = key;
+    filterBarEl.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b === btnEl));
+
+    let visibleCount = 0;
+    galleryEl.querySelectorAll('.frame').forEach(frameEl => {
+      const match = key === 'all' || frameEl.dataset.category === key;
+      if(match){
+        visibleCount++;
+        frameEl.style.display = '';
+        requestAnimationFrame(() => frameEl.classList.remove('is-hidden'));
+      } else {
+        frameEl.classList.add('is-hidden');
+        const hide = () => { if(frameEl.classList.contains('is-hidden')) frameEl.style.display = 'none'; };
+        if(reduceMotion){ hide(); } else { setTimeout(hide, 380); }
+      }
+    });
+
+    rollMetaEl.textContent = key === 'all'
+      ? photos.length + ' frames developed'
+      : visibleCount + ' frame' + (visibleCount === 1 ? '' : 's') + ' — ' + categoryLabel(key).toLowerCase();
+  }
+
+  function getVisibleIndices(){
+    return photos.map((p,i) => i).filter(i => activeCategory === 'all' || photos[i].category === activeCategory);
+  }
+
+  // Lightbox
+  const lightboxEl = document.getElementById('lightbox');
+  const lbImage = document.getElementById('lbImage');
+  const lbFrame = document.getElementById('lbFrame');
+  const lbTitle = document.getElementById('lbTitle');
+  const lbCat = document.getElementById('lbCat');
+  const lbClose = document.getElementById('lbClose');
+  const lbPrev = document.getElementById('lbPrev');
+  const lbNext = document.getElementById('lbNext');
+
+  let visibleIndices = [];
+  let currentPos = 0;
+  let lastFocused = null;
+
+  function openLightbox(originalIndex){
+    visibleIndices = getVisibleIndices();
+    currentPos = visibleIndices.indexOf(originalIndex);
+    if(currentPos === -1) currentPos = 0;
+    lastFocused = document.activeElement;
+    renderLightbox(true);
+    lightboxEl.classList.add('is-open');
+    document.body.style.overflow = 'hidden';
+    document.addEventListener('keydown', onKeydown);
+    lbClose.focus();
+  }
+
+  function closeLightbox(){
+    lightboxEl.classList.remove('is-open');
+    document.body.style.overflow = '';
+    document.removeEventListener('keydown', onKeydown);
+    if(lastFocused && typeof lastFocused.focus === 'function') lastFocused.focus();
+  }
+
+  function renderLightbox(immediate){
+    const origIndex = visibleIndices[currentPos];
+    const p = photos[origIndex];
+    const apply = () => {
+      lbImage.src = p.src + IMG_PARAMS.replace('720','1200').replace('480','800');
+      lbImage.alt = p.title;
+      lbImage.onerror = function(){ this.onerror = null; this.src = 'https://picsum.photos/seed/frame' + origIndex + '/1200/800'; };
+      lbFrame.textContent = 'Frame ' + String(origIndex+1).padStart(2,'0') + ' — ' + (currentPos+1) + ' / ' + visibleIndices.length;
+      lbTitle.textContent = p.title;
+      lbCat.textContent = categoryLabel(p.category);
+      lbImage.classList.remove('switching');
+    };
+    if(immediate || reduceMotion){
+      apply();
+    } else {
+      lbImage.classList.add('switching');
+      setTimeout(apply, 160);
+    }
+  }
+
+  function next(){ currentPos = (currentPos+1) % visibleIndices.length; renderLightbox(false); }
+  function prev(){ currentPos = (currentPos-1+visibleIndices.length) % visibleIndices.length; renderLightbox(false); }
+
+  function onKeydown(e){
+    if(e.key === 'Escape'){ closeLightbox(); }
+    else if(e.key === 'ArrowRight'){ next(); }
+    else if(e.key === 'ArrowLeft'){ prev(); }
+    else if(e.key === 'Tab'){
+      const f = [lbPrev, lbClose, lbNext];
+      const idx = f.indexOf(document.activeElement);
+      let nextIdx;
+      if(idx === -1){ nextIdx = 0; }
+      else { nextIdx = e.shiftKey ? (idx-1+f.length)%f.length : (idx+1)%f.length; }
+      e.preventDefault();
+      f[nextIdx].focus();
+    }
+  }
+
+  lbClose.addEventListener('click', closeLightbox);
+  lbPrev.addEventListener('click', prev);
+  lbNext.addEventListener('click', next);
+  lightboxEl.addEventListener('click', e => { if(e.target === lightboxEl) closeLightbox(); });
+
+  let touchStartX = null;
+  lightboxEl.addEventListener('touchstart', e => { touchStartX = e.touches[0].clientX; }, {passive:true});
+  lightboxEl.addEventListener('touchend', e => {
+    if(touchStartX === null) return;
+    const dx = e.changedTouches[0].clientX - touchStartX;
+    if(Math.abs(dx) > 40){ dx < 0 ? next() : prev(); }
+    touchStartX = null;
+  }, {passive:true});
+
+  buildFrames();
+  buildFilters();
+})();
+</script>
+</body>
+</html>
